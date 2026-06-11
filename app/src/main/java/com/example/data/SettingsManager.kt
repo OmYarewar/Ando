@@ -12,6 +12,7 @@ class SettingsManager(context: Context) {
         private const val KEY_SEARCH_ENABLED = "search_enabled"
         private const val KEY_SEARCH_PROVIDER = "search_provider"
         private const val KEY_TAVILY_API_KEY = "tavily_api_key"
+        private const val KEY_GITHUB_REPO = "github_repo_slug"
 
         const val PROVIDER_DDG = "DuckDuckGo (Free, No Key)"
         const val PROVIDER_TAVILY = "Tavily Search (Requires Key)"
@@ -38,4 +39,8 @@ class SettingsManager(context: Context) {
     var tavilyApiKey: String
         get() = prefs.getString(KEY_TAVILY_API_KEY, "") ?: ""
         set(value) = prefs.edit().putString(KEY_TAVILY_API_KEY, value.trim()).apply()
+
+    var githubRepo: String
+        get() = prefs.getString(KEY_GITHUB_REPO, "yarewarom/ando") ?: "yarewarom/ando"
+        set(value) = prefs.edit().putString(KEY_GITHUB_REPO, value.trim()).apply()
 }

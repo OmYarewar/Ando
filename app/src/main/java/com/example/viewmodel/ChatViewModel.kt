@@ -37,6 +37,13 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         .build()
         .create(NvidiaNimApi::class.java)
 
+    private val gitHubService: GitHubService = Retrofit.Builder()
+        .baseUrl("https://api.github.com/")
+        .client(okHttpClient)
+        .addConverterFactory(MoshiConverterFactory.create())
+        .build()
+        .create(GitHubService::class.java)
+
     private val searchService = WebSearchService(okHttpClient)
 
     // State flows
@@ -72,7 +79,20 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
+    // State flows for GitHub updates
+    private val _latestRelease = MutableStateFlow<GitHubRelease?>(null)
+    val latestRelease: StateFlow<GitHubRelease?> = _latestRelease.asStateFlow()
+
+    private val _isUpdateAvailable = MutableStateFlow(false)
+    val isUpdateAvailable: StateFlow<Boolean> = _isUpdateAvailable.asStateFlow()
+
+    private val _updateCheckInProgress = MutableStateFlow(false)
+    val updateCheckInProgress: StateFlow<Boolean> = _updateCheckInProgress.asStateFlow()
+
     init {
+        // Run a silent update check in the background on startup
+        checkForUpdates(silent = true)
+
         // Auto-select the most recent session or create one on launch
         viewModelScope.launch {
             sessions.collectFirst { list ->
@@ -544,6 +564,64 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 _searchStatus.value = null
             }
         }
+    }
+
+    fun checkForUpdates(silent: Boolean = false) {
+        val repoSlug = settings.githubRepo.trim()
+        if (repoSlug.isBlank() || !repoSlug.contains("/")) {
+            if (!silent) {
+                _errorMessage.value = "Invalid GitHub Repository slug format. Use 'owner/repo'."
+            }
+            return
+        }
+
+        val parts = repoSlug.split("/")
+        val owner = parts[0].trim()
+        val repo = parts[1].trim()
+
+        viewModelScope.launch {
+            if (!silent) {
+                _updateCheckInProgress.value = true
+            }
+            try {
+                val release = gitHubService.getLatestRelease(owner, repo)
+                _latestRelease.value = release
+                
+                val currentVersion = com.example.BuildConfig.VERSION_NAME
+                val isNew = isNewerVersion(currentVersion, release.tagName)
+                _isUpdateAvailable.value = isNew
+                
+                if (!silent && !isNew) {
+                    _errorMessage.value = "Your Ando app is up to date (Version $currentVersion)."
+                }
+            } catch (e: Exception) {
+                Log.e("ChatViewModel", "Update check failed", e)
+                if (!silent) {
+                    _errorMessage.value = "Failed to fetch update info: ${e.localizedMessage}"
+                }
+            } finally {
+                _updateCheckInProgress.value = false
+            }
+        }
+    }
+
+    private fun isNewerVersion(localVer: String, remoteVer: String): Boolean {
+        val localClean = localVer.lowercase().replace("v", "").trim()
+        val remoteClean = remoteVer.lowercase().replace("v", "").trim()
+        
+        if (localClean == remoteClean) return false
+        
+        val localParts = localClean.split(".").mapNotNull { it.toIntOrNull() }
+        val remoteParts = remoteClean.split(".").mapNotNull { it.toIntOrNull() }
+        
+        val maxLength = maxOf(localParts.size, remoteParts.size)
+        for (i in 0 until maxLength) {
+            val localVal = localParts.getOrElse(i) { 0 }
+            val remoteVal = remoteParts.getOrElse(i) { 0 }
+            if (remoteVal > localVal) return true
+            if (localVal > remoteVal) return false
+        }
+        return remoteClean != localClean && remoteClean > localClean
     }
 
     fun clearError() {

@@ -58,6 +58,12 @@ fun ChatScreen(
     val skillsList by viewModel.skills.collectAsStateWithLifecycle()
     val memoriesList by viewModel.memories.collectAsStateWithLifecycle()
 
+    val latestRelease by viewModel.latestRelease.collectAsStateWithLifecycle()
+    val isUpdateAvailable by viewModel.isUpdateAvailable.collectAsStateWithLifecycle()
+    val updateCheckInProgress by viewModel.updateCheckInProgress.collectAsStateWithLifecycle()
+
+    var showUpdateAlert by remember { mutableStateOf(true) }
+
     // Active bottom navigation selected tab
     // 0 = Chat, 1 = RAG Memories, 2 = AI Workspace & MCP, 3 = Game
     var selectedTab by remember { mutableStateOf(0) }
@@ -480,6 +486,87 @@ fun ChatScreen(
                 }
             }
         }
+
+        // Auto update check dialog matching user's intent
+        if (isUpdateAvailable && latestRelease != null && showUpdateAlert) {
+            val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+            AlertDialog(
+                onDismissRequest = { showUpdateAlert = false },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = "Update Icon",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "🚀 Version Update Available",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
+                },
+                text = {
+                    Column {
+                        Text(
+                            text = "An updated version (${latestRelease?.tagName}) of Ando is available on GitHub!",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Would you like to redirect to the repository releases now so you can download and install the new APK?",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        
+                        latestRelease?.body?.let { notes ->
+                            if (notes.isNotBlank()) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Surface(
+                                    color = Color.Black.copy(alpha = 0.05f),
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Column(modifier = Modifier.padding(10.dp)) {
+                                        Text(
+                                            text = "Release Notes:",
+                                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+                                        )
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(
+                                            text = notes,
+                                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                                            maxLines = 5
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            showUpdateAlert = false
+                            uriHandler.openUri(latestRelease?.htmlUrl ?: "https://github.com/${viewModel.settings.githubRepo}/releases")
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Text("Download & Update", fontWeight = FontWeight.Bold)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showUpdateAlert = false }) {
+                        Text("Later", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            )
+        }
     }
 }
 
@@ -712,6 +799,11 @@ fun SkillsWorkspaceScreen(
     var modelId by remember { mutableStateOf(viewModel.settings.nvidiaModelId) }
     var searchEnabled by remember { mutableStateOf(viewModel.settings.searchEnabled) }
     var apiKeyVisible by remember { mutableStateOf(false) }
+    var githubRepo by remember { mutableStateOf(viewModel.settings.githubRepo) }
+
+    val latestRelease by viewModel.latestRelease.collectAsStateWithLifecycle()
+    val isUpdateAvailable by viewModel.isUpdateAvailable.collectAsStateWithLifecycle()
+    val updateCheckInProgress by viewModel.updateCheckInProgress.collectAsStateWithLifecycle()
 
     val presetModels = listOf(
         "nvidia/llama-3.1-nemotron-70b-instruct",
@@ -1035,6 +1127,150 @@ fun SkillsWorkspaceScreen(
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = if (modelId == preset) FontWeight.Bold else FontWeight.Normal
                 )
+            }
+        }
+
+        item {
+            Spacer(modifier = Modifier.height(16.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                "🐙 GitHub Updates Synchronization",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                "Configure your repository owner/name slug to fetch and synchronize dynamic APK updates from GitHub releases.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp, bottom = 8.dp)
+            )
+        }
+
+        item {
+            OutlinedTextField(
+                value = githubRepo,
+                onValueChange = {
+                    githubRepo = it
+                    viewModel.settings.githubRepo = it
+                },
+                label = { Text("GitHub Repo Slug (owner/repository)") },
+                placeholder = { Text("e.g. yarewarom/ando") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = RoundedCornerShape(10.dp)
+            )
+            Text(
+                text = "Used to check for latest APK updates and direct you to releases on GitHub.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+            )
+        }
+
+        item {
+            val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = if (isUpdateAvailable)
+                        MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f)
+                    else
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
+                ),
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(
+                        width = if (isUpdateAvailable) 1.dp else 0.dp,
+                        color = MaterialTheme.colorScheme.error,
+                        shape = RoundedCornerShape(14.dp)
+                    )
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "App Version Check",
+                                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "Installed Version: ${com.example.BuildConfig.VERSION_NAME}",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            if (isUpdateAvailable && latestRelease != null) {
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "Latest Release: ${latestRelease?.tagName ?: ""}",
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+                        
+                        if (updateCheckInProgress) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                        } else {
+                            Button(
+                                onClick = { viewModel.checkForUpdates(silent = false) },
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Text("Check Now", style = MaterialTheme.typography.labelMedium)
+                            }
+                        }
+                    }
+
+                    if (isUpdateAvailable && latestRelease != null) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(
+                            text = "A new version of Ando is available on GitHub! Open the link to download the updated APK directly.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        latestRelease?.body?.let { notes ->
+                            if (notes.isNotBlank()) {
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Surface(
+                                    color = Color.Black.copy(alpha = 0.05f),
+                                    shape = RoundedCornerShape(6.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Column(modifier = Modifier.padding(8.dp)) {
+                                        Text(
+                                            "Release Notes:",
+                                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+                                        )
+                                        Text(
+                                            text = notes,
+                                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                                            maxLines = 4
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Button(
+                            onClick = {
+                                uriHandler.openUri(latestRelease?.htmlUrl ?: "https://github.com/${viewModel.settings.githubRepo}/releases")
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Icon(imageVector = Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Download APK Update", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
             }
         }
 
