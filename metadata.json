@@ -1,0 +1,6 @@
+{
+  "name": "Ando",
+  "description": "An Android Chat client for NVIDIA NIM API with session management and real web search integration.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
