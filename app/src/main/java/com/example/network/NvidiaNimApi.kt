@@ -8,8 +8,8 @@ import retrofit2.http.POST
 
 @JsonClass(generateAdapter = true)
 data class NvidiaMessage(
-    @Json(name = "role") val role: String,
-    @Json(name = "content") val content: String
+    @Json(name = "role") val role: String? = null,
+    @Json(name = "content") val content: String? = null
 )
 
 @JsonClass(generateAdapter = true)
@@ -23,8 +23,8 @@ data class NvidiaChatRequest(
 
 @JsonClass(generateAdapter = true)
 data class NvidiaChoice(
-    @Json(name = "index") val index: Int,
-    @Json(name = "message") val message: NvidiaMessage,
+    @Json(name = "index") val index: Int? = null,
+    @Json(name = "message") val message: NvidiaMessage? = null,
     @Json(name = "finish_reason") val finishReason: String? = null
 )
 

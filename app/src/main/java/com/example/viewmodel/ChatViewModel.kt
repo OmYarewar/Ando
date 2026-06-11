@@ -13,6 +13,8 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import java.util.concurrent.TimeUnit
 
 class ChatViewModel(application: Application) : AndroidViewModel(application) {
@@ -30,17 +32,21 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         .readTimeout(30, TimeUnit.SECONDS)
         .build()
 
+    private val moshi: Moshi = Moshi.Builder()
+        .addLast(KotlinJsonAdapterFactory())
+        .build()
+
     private val nvidiaApi: NvidiaNimApi = Retrofit.Builder()
         .baseUrl("https://integrate.api.nvidia.com/v1/")
         .client(okHttpClient)
-        .addConverterFactory(MoshiConverterFactory.create())
+        .addConverterFactory(MoshiConverterFactory.create(moshi))
         .build()
         .create(NvidiaNimApi::class.java)
 
     private val gitHubService: GitHubService = Retrofit.Builder()
         .baseUrl("https://api.github.com/")
         .client(okHttpClient)
-        .addConverterFactory(MoshiConverterFactory.create())
+        .addConverterFactory(MoshiConverterFactory.create(moshi))
         .build()
         .create(GitHubService::class.java)
 
@@ -391,8 +397,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 )
 
                 val choice = response.choices?.firstOrNull()
-                if (choice != null) {
-                    val aiReply = choice.message.content
+                val aiReply = choice?.message?.content
+                if (aiReply != null) {
                     repository.insertMessage(
                         ChatMessage(
                             sessionId = activeSessionId,
