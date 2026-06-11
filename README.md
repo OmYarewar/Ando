@@ -1,21 +1,80 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# Ando 📱
 
-# Run and deploy your AI Studio app
+An elegant, modern, offline-first Android application designed to interface with the **NVIDIA NIM API**, structured as a personal AI workspace with dynamic Local Retrieval-Augmented Generation (RAG) and SQLite-powered memory/skill context-injection.
 
-This contains everything you need to run your app locally.
+Built with **Jetpack Compose**, **Room Database (SQLite)**, and styled natively with **Material Design 3**.
 
-View your app in AI Studio: https://ai.studio/apps/09f544aa-3de5-4f3f-b4b8-9492afc6f550
+---
 
-## Run Locally
+## 🚀 Key Features
 
-**Prerequisites:**  [Android Studio](https://developer.android.com/studio)
+*   **Ando Chat Terminal**: An interactive messaging client optimized for speed and fluidity, featuring dynamic status indicators and streaming UI feel powered by NVIDIA NIM endpoints.
+*   **Local RAG Memory Bank**: In-app SQLite retrieval engine that automatically indexes key facts from conversation strings and inserts relevant prompt expansions in real time.
+*   **AI Workspace & Skills Folder**: Customizable system prompts and persona cards. Save expert custom instruction sets (e.g. Code Optimizers, Creative Writers) and toggle them dynamically to inject into the active NIM orchestration.
+*   **Web Search Synchronization**: A fast query-augmenting search routine that enhances conversation accuracy with up-to-date web intelligence.
+*   **Fully Offline-First Metadata**: All conversations, extracted memories, and customized systems are tracked locally with Room persistence.
 
+---
 
-1. Open Android Studio
-2. Select **Open** and choose the directory containing this project
-3. Allow Android Studio to fix any incompatibilities as it imports the project.
-4. Create a file named `.env` in the project directory and set `GEMINI_API_KEY` in that file to your Gemini API key (see `.env.example` for an example)
-5. Remove this line from the app's `build.gradle.kts` file: `signingConfig = signingConfigs.getByName("debugConfig")`
-6. Run the app on an emulator or physical device
+## 🛠️ Tech Stack & Architecture
+
+This repository adopts modern Android practices matching native application architecture:
+
+*   **Language**: 100% [Kotlin](https://kotlinlang.org/)
+*   **UI Framework**: [Jetpack Compose](https://developer.android.com/compose) with Material Design 3 (M3)
+*   **Database**: [Room SQLite](https://developer.android.com/training/data-storage/room) for local persistence and index searches
+*   **Networking**: [Retrofit 2](https://square.github.io/retrofit/) & OkHttp3 for clean type-safe API requests
+*   **Architecture Pattern**: Clean Architecture + MVVM (Model-View-ViewModel) + unidirectional state flow (UDF)
+*   **Asynchronous Engine**: Kotlin Coroutines and StateFlow for non-blocking asynchronous state collections
+*   **Build System**: Gradle Kotlin DSL (`.build.gradle.kts`)
+
+---
+
+## 📦 Getting Started & Installation
+
+### Prerequisite: NVIDIA NIM Key
+To power the AI dialogue, obtain a free API Token from the [NVIDIA API Catalog](https://build.nvidia.com/) and input it securely on the **AI Workspace & Credentials** page within the app.
+
+### Manual Build Instructions
+1. Clone this repository:
+   ```bash
+   git clone https://github.com/your-username/ando.git
+   cd ando
+   ```
+2. Open the project inside **Android Studio** (Ladybug or newer).
+3. Let Gradle sync and download relevant dependencies.
+4. Hit **Run** or build the debug assembly via terminal:
+   ```bash
+   ./gradlew assembleDebug
+   ```
+The compiled APK will be outputted under:
+`app/build/outputs/apk/debug/app-debug.apk`
+
+---
+
+## ⚙️ AI Studio Platform Features
+Since this project is optimized for the **Google AI Studio platform**, you can:
+*   **Stream Live previews** instantly using the browser emulator.
+*   **Generate Fresh APKs** directly from the sidebar settings.
+*   **Deploy directly to GitHub** or sync changes via the integration sidebar.
+
+---
+
+## 📂 Project Structure
+
+```
+ando/
+├── app/
+│   ├── src/main/java/com/example/
+│   │   ├── data/             # Room Entity schemas, DAOs, and database connectors
+│   │   ├── repository/       # Data syncing and network accessors
+│   │   ├── ui/               # Complete Composable UX Screens, components, and Material themes
+│   │   └── viewmodel/        # ChatViewModel orchestrating screen UI States
+│   └── build.gradle.kts      # Module level dependencies configuration
+├── metadata.json             # AI Studio Platform Metadata configuration
+└── build.gradle.kts          # Root-level build configuration scripts
+```
+
+---
+
+*Enjoy a clean, fast, and highly contextual local AI workspace experience with Ando!*
